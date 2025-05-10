@@ -215,19 +215,21 @@ public class VndbPhraser : IGalInfoPhraser, IGalStatusSync, IGalCharacterPhraser
             result.Tags.Value = new ObservableCollection<string>();
             if (rssItem.Tags != null)
             {
-                var tmpTags = rssItem.Tags.OrderByDescending(t => t.Rating)
-                    .Where(t => t.Spoiler == null || t.Spoiler <= 1);  // 过滤掉剧透程度大于1的标签（仅显示轻微剧透）
-                foreach (VndbTag tag in tmpTags)
+                foreach (VndbTag tag in rssItem.Tags)
                 {
-                    if (!int.TryParse(tag.Id![1..], out var i)) continue;
+                    // 确保 tag.Id 不为空且可以解析为整数
+                    if (!int.TryParse(tag.Id?[1..], out var i))
+                        continue;
+
+                    // 检查 _tagDb 中是否存在该 id 对应的标签信息
                     if (_tagDb.TryGetValue(i, out JToken? tagInfo))
                     {
-                        // 仅保留一般性的tag，跳过sexual content 和 technical tags.
-                        if (tagInfo["cat"]!.ToString() != "cont") continue;
-                        result.Tags.Value.Add(tagInfo["name"]!.ToString() ?? "");
+                        // 添加标签名称（即使 tagInfo["name"] 为 null，也会添加空字符串）
+                        result.Tags.Value.Add(tagInfo["name"]?.ToString() ?? "");
                     }
                 }
             }
+
             // Characters
             try
             {
